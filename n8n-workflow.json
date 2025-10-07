@@ -1,0 +1,236 @@
+{
+  "name": "PepsiCo Agent-3 Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Call the MCP tool \"execute_route\" exactly once.\nCall the MCP tool \"notify_delivery_delay\" exactly once.\n\nArguments = {{ $json.payload }}\n\nCall the MCP tool \"update_execution_statu\" exactly once.\n\nArguments = {\n  \"route_id\": \"{{ $json.payload_sn }}\",\n  \"status\": \"dispatched\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        -304
+      ],
+      "id": "0efe93d6-718b-4bb6-92d8-fd2e39b88b10",
+      "name": "AI Agent",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "model": "ai21.jamba-1-5-mini-v1:0",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        -16
+      ],
+      "id": "b5e4d752-43b0-40af-accd-d4a048de7635",
+      "name": "AWS Bedrock Chat Model",
+      "credentials": {
+        "aws": {
+          "id": "dhU2b4yMK7QYIkoq",
+          "name": "aws-bedrock-lab"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pepsico-route",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -512,
+        -304
+      ],
+      "id": "3a72abce-0026-4ca8-bb5d-52ecca8e97bf",
+      "name": "inbound_webhook",
+      "webhookId": "35aedb72-5362-4d94-9a76-81e231022445"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://34.197.44.143:8001/mcp",
+        "serverTransport": "httpStreamable",
+        "include": "selected",
+        "includeTools": [
+          "execute_route"
+        ],
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        -128
+      ],
+      "id": "657a06d6-ac9d-4dca-9650-2fa04cb28307",
+      "name": "MCP: execute_route"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1b74e2ed-f832-4e4a-9fb0-d2e0aa1d69b3",
+              "name": "payload",
+              "value": "={{ $(\"inbound_webhook\").item.json.body }}",
+              "type": "string"
+            },
+            {
+              "id": "3c455c51-818e-4663-bcd6-8c5f928dff55",
+              "name": "payload_sn",
+              "value": "={{ $json.body.route_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -304,
+        -304
+      ],
+      "id": "78c9c077-da58-4545-9999-444d2408c12b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://34.197.44.143:8002/mcp",
+        "serverTransport": "httpStreamable",
+        "include": "selected",
+        "includeTools": [
+          "notify_delivery_delay"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "24ba8e6c-7348-4903-a0e4-5d26a91994d9",
+      "name": "MCP notify_delivery_delay"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://34.197.44.143:8000/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "bearerAuth",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        96,
+        32
+      ],
+      "id": "93c1df18-14ed-4022-9614-3aa0c58648c1",
+      "name": "MCP update_execution_statu",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "v3Z22qtjZRW1KJZv",
+          "name": "Bearer Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AWS Bedrock Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "inbound_webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP: execute_route": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP notify_delivery_delay": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP update_execution_statu": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "55e0f1a4-9d19-4591-974a-2decf84f6116",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e4f60489a640d9431ea7e2dc5f3689f281cd2d0cecbda11dd310dfa8e069c117"
+  },
+  "id": "YiZxiYJ1DPVS4hpL",
+  "tags": []
+}
